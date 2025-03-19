@@ -332,6 +332,12 @@ class Aossapi:
 
             if not reboot:
                 self.logout()
+            
+            #For some reason, my switches return a 404 error when doing NTP updates in spite of
+            #it actually being succesful. This is based on an "ugly hack" by Flamme-2.
+            if headers['status'] == 404:
+                if "/ntp/server/ip4addr/" in url or "/ntp/server-name/ASCII-STR/" in url:
+                    return {'msg': 'Successful', 'changed': True}
 
             if headers['status'] == 204:
                 return {'msg': 'Successful', 'changed': True}
