@@ -447,6 +447,29 @@ def config_radius_server(module):
     data["is_oobm"] = params['is_oobm']
 
     create_url = '/radius_servers'
+
+    # Check to see if the server we are trying to create already exists. If it
+    # does, we need to update the radius_server_ip param or else it is going
+    # to try updating a non-existent server or try adding a duplicate server
+    # under a different server ID, which will cause the switch to throw an
+    # error and fail this task.
+    radius_server_data = json.loads(get_config(module, create_url))\
+                         ["radius_server_element"]
+    radius_server_count = len(radius_server_data)
+    for i in range(radius_server_count):
+        #If a server with this IP address already exists...
+        if radius_server_data[i]["address"]["octets"] == params["server_ip"]:
+            found_radius_server_id = int(radius_server_data[i]\
+                                         ["radius_server_id"])
+            #Update both params and data: a mismatch will cause ansible to
+            #incorrectly think that a change has taken place as a result of
+            #changing this parameter.
+            if params['radius_server_id'] != found_radius_server_id:
+                params['radius_server_id'] = found_radius_server_id
+                data["radius_server_id"] = found_radius_server_id
+
+    # Now that we have the correct radius server ID, we can produce the
+    # "check_url".
     check_url = '/radius_servers/' + str(params['radius_server_id'])
 
     if params['config'] == "create":
